@@ -1,113 +1,204 @@
-import Image from "next/image";
+"use client"
 
-export default function Home() {
+import axios from 'axios';
+import { useEffect, useState } from 'react';
+import Confetti from 'react-confetti';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+const WordleBoard = () => {
+  const [wordleGrid, setWordleGrid] = useState<{
+    firstRow: (string | undefined)[];
+    secondRow: (string | undefined)[];
+    thirdRow: (string | undefined)[];
+    fourthRow: (string | undefined)[];
+    fifthRow: (string | undefined)[];
+    sixthRow: (string | undefined)[];
+  }>({
+    firstRow: [undefined, undefined, undefined, undefined, undefined],
+    secondRow: [undefined, undefined, undefined, undefined, undefined],
+    thirdRow: [undefined, undefined, undefined, undefined, undefined],
+    fourthRow: [undefined, undefined, undefined, undefined, undefined],
+    fifthRow: [undefined, undefined, undefined, undefined, undefined],
+    sixthRow: [undefined, undefined, undefined, undefined, undefined],
+  });
+
+  const [activeRow, setActiveRow] = useState(0);
+  const [word, setWord] = useState<undefined | string>(undefined);
+  const [rowStatuses, setRowStatuses] = useState<string[][]>(Array(6).fill(Array(5).fill('bg-white')));
+
+  const [flipAnimation, setFlipAnimation] = useState<{ rowIndex: number; letterIndex: number } | null>(null);
+  const [showConfetti, setShowConfetti] = useState(false);
+
+  const gridArray = Object.values(wordleGrid);
+  const keyboardLayout = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+
+  const handleWordle = (letter: string) => {
+    setWordleGrid((prev) => {
+      const currentRowKey = Object.keys(prev)[activeRow];
+      const currentRow = prev[currentRowKey as keyof typeof prev];
+
+      if (currentRow.includes(undefined)) {
+        const updatedRow = [...currentRow];
+        updatedRow[updatedRow.indexOf(undefined)] = letter;
+        return { ...prev, [currentRowKey]: updatedRow };
+      }
+      return prev;
+    });
+  };
+
+  const handleEnter = () => {
+    const currentRowKey = Object.keys(wordleGrid)[activeRow];
+    const currentRow = wordleGrid[currentRowKey as keyof typeof wordleGrid];
+
+    if (!currentRow.includes(undefined)) {
+      const guessedWord = currentRow.join('').toUpperCase();
+      const correctWord = word?.toUpperCase().split('') || [];
+      const newRowStatus = currentRow.map((letter, index) => {
+        if (letter === correctWord[index]) return 'bg-green-500';
+        if (correctWord.includes(letter as string)) return 'bg-yellow-500';
+        return 'bg-gray-500';
+      });
+
+      setRowStatuses(prevStatuses => {
+        const newStatuses = [...prevStatuses];
+        newStatuses[activeRow] = newRowStatus;
+        return newStatuses;
+      });
+
+      setFlipAnimation({ rowIndex: activeRow, letterIndex: -1 });
+      setTimeout(() => {
+        if (guessedWord === word?.toUpperCase()) {
+          setShowConfetti(true);
+          toast.success('Congratulations! You guessed the word!');
+          setTimeout(() => setShowConfetti(false), 5000); // Hide confetti after 5 seconds
+        } else if (activeRow === 5) {
+          toast.error(`Game over. The word was: ${word}`);
+        }
+        setActiveRow((prev) => (prev < 5 ? prev + 1 : prev));
+      }, 800);
+    }
+  };
+
+  const handleBackspace = () => {
+    setWordleGrid((prev) => {
+      const currentRowKey = Object.keys(prev)[activeRow];
+      const currentRow = [...prev[currentRowKey as keyof typeof prev]];
+
+      for (let i = currentRow.length - 1; i >= 0; i--) {
+        if (currentRow[i] !== undefined) {
+          currentRow[i] = undefined;
+          break;
+        }
+      }
+
+      return { ...prev, [currentRowKey]: currentRow };
+    });
+  };
+
+  useEffect(() => {
+    const fetchWord = async () => {
+      try {
+        const response = await axios.get("http://localhost:3000/api");
+        setWord(response.data.message)
+      } catch (error) {
+        console.error('Fetch error:', error);
+      }
+    };
+
+    fetchWord();
+  }, []);
+
+
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">src/app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:size-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="flex flex-col items-center mt-12 space-y-4">
+      {/* Heading */}
+      <h1 className="text-3xl font-bold text-gray-800 mb-6">Wordle Game</h1>
+
+      {/* Confetti */}
+      {showConfetti && <Confetti />}
+
+      {/* Blank Grid */}
+      <div className="grid grid-cols-5 gap-2">
+        {gridArray.map((row, rowIndex) =>
+          row.map((letter, letterIndex) => {
+            const bgColor = rowStatuses[rowIndex][letterIndex];
+            const textColor = bgColor === 'bg-white' ? 'text-black' :
+              bgColor === 'bg-green-500' ? 'text-white' :
+                bgColor === 'bg-yellow-500' ? 'text-black' :
+                  'text-white';
+            return (
+              <div
+                key={`${rowIndex}-${letterIndex}`}
+                className={`w-12 h-12 border-2 border-gray-400 flex items-center text-xl font-bold justify-center ${bgColor} ${textColor} ${flipAnimation?.rowIndex === rowIndex ? 'flip' : ''}`}
+                style={{ animationDelay: `${letterIndex * 0.2}s` }}
+              >
+                {letter}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Keyboard */}
+      <div className="flex flex-col space-y-2 mt-4">
+        {/* First Row */}
+        <div className="flex justify-center items-center space-x-2">
+          {keyboardLayout[0].split("").map((key, keyIndex) => (
+            <button
+              onClick={() => handleWordle(key)}
+              key={keyIndex}
+              className="w-7 h-12 md:w-12 md:h-12 flex items-center justify-center text-white font-bold bg-gray-500 rounded"
+            >
+              {key}
+            </button>
+          ))}
+        </div>
+
+        {/* Second Row */}
+        <div className="flex justify-center space-x-2">
+          {keyboardLayout[1].split("").map((key, keyIndex) => (
+            <button
+              onClick={() => handleWordle(key)}
+              key={keyIndex}
+              className="w-7 h-12 md:w-12 flex items-center justify-center text-white font-bold bg-gray-500 rounded"
+            >
+              {key}
+            </button>
+          ))}
+        </div>
+
+        {/* Third Row */}
+        <div className="flex justify-center space-x-2">
+          {/* Enter Key */}
+          <button
+            onClick={handleEnter}
+            className="w-10 md:w-20 h-12 flex items-center justify-center text-white font-bold bg-gray-500 rounded text-sm md:text-base"
           >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+            Enter
+          </button>
+
+          {keyboardLayout[2].split("").map((key, keyIndex) => (
+            <button
+              onClick={() => handleWordle(key)}
+              key={keyIndex}
+              className="w-7 h-12 md:w-12 flex items-center justify-center text-white font-bold bg-gray-500 rounded"
+            >
+              {key}
+            </button>
+          ))}
+
+          {/* Backspace Key */}
+          <button onClick={handleBackspace} className="w-10 md:w-20 h-12 flex items-center justify-center text-white font-bold bg-gray-500 rounded">
+            ⌫
+          </button>
         </div>
       </div>
 
-      <div className="relative z-[-1] flex place-items-center before:absolute before:h-[300px] before:w-full before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-full after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 sm:before:w-[480px] sm:after:w-[240px] before:lg:h-[360px]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:mb-0 lg:w-full lg:max-w-5xl lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Docs{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Learn{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Templates{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-sm opacity-50">
-            Explore starter templates for Next.js.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className="mb-3 text-2xl font-semibold">
-            Deploy{" "}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className="m-0 max-w-[30ch] text-balance text-sm opacity-50">
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+      {/* Toast Container */}
+      <ToastContainer />
+    </div>
   );
-}
+};
+
+export default WordleBoard;
