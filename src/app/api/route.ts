@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
             wordsArray.push(word.text)
         ))
 
-        const question = `Generate a random five-letter word for a Wordle game in uppercase which is not the array ${wordsArray}`;
+        const question = `Generate a random five-letter word for a Wordle game which is not the array ${wordsArray}`;
 
         const geminiModel = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_KEY as string);
 
@@ -32,13 +32,13 @@ export async function GET(req: NextRequest) {
 
         const save = await prisma.wordle.create({
             data: {
-                text: result.response.text()
+                text: result.response.text().toUpperCase()
             }
         })
 
         console.log(result.response.text())
 
-        return NextResponse.json({ message: result.response.text() }, { status: 200 })
+        return NextResponse.json({ message: result.response.text().toUpperCase() }, { status: 200 })
     } catch (error:any) {
         console.log(error)
         return NextResponse.json({ message: error }, { status: 500 })
