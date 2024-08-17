@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
             wordsArray.push(word.text)
         ))
 
-        const question = `Generate a random five-letter word suitable for a Wordle game in uppercase which is not the array ${wordsArray}`;
+        const question = `Generate a random five-letter word for a Wordle game in uppercase which is not the array ${wordsArray}`;
 
         const geminiModel = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_KEY as string);
 
