@@ -103,11 +103,12 @@ const WordleBoard = () => {
       try {
         setWordLoading(true);
         setFetchError(null);
-        const response = await axios.get("https://https://wordle-zeta-virid.vercel.app//api");
+        const response = await axios.get("https://wordle-zeta-virid.vercel.app/api");
         const word = response.data.message.toUpperCase();
         setWord(word);
       } catch (error:any) {
         setFetchError(error);
+        console.log(error)
       } finally {
         setWordLoading(false);
       }
