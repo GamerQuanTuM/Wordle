@@ -24,8 +24,9 @@ const WordleBoard = () => {
   });
 
   const [activeRow, setActiveRow] = useState(0);
-  const [word, setWord] = useState<undefined | string>(undefined);
+  const [word, setWord] = useState<undefined | string>("TRACE");
   const [rowStatuses, setRowStatuses] = useState<string[][]>(Array(6).fill(Array(5).fill('bg-white')));
+  const [wordLoading, setWordLoading] = useState(false)
 
   const [flipAnimation, setFlipAnimation] = useState<{ rowIndex: number; letterIndex: number } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -99,8 +100,11 @@ const WordleBoard = () => {
   useEffect(() => {
     const fetchWord = async () => {
       try {
+        setWordLoading(true)
         const response = await axios.get("http://localhost:3000/api");
-        setWord(response.data.message)
+        const word = response.data.message.toUpperCase()
+        setWord(word)
+        setWordLoading(false)
       } catch (error) {
         console.error('Fetch error:', error);
       }
@@ -108,6 +112,15 @@ const WordleBoard = () => {
 
     fetchWord();
   }, []);
+
+  if (wordLoading) {
+    return (
+      <div className="flex h-screen w-screen flex-col justify-center items-center">
+        <div className="loader"></div>
+        <p className="mt-4 text-lg text-gray-700">Fetching Wordle word, please wait...</p>
+      </div>
+    )
+  }
 
 
   return (
