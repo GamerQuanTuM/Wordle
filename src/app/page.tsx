@@ -26,7 +26,8 @@ const WordleBoard = () => {
   const [activeRow, setActiveRow] = useState(0);
   const [word, setWord] = useState<undefined | string>("TRACE");
   const [rowStatuses, setRowStatuses] = useState<string[][]>(Array(6).fill(Array(5).fill('bg-white')));
-  const [wordLoading, setWordLoading] = useState(false)
+  const [wordLoading, setWordLoading] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   const [flipAnimation, setFlipAnimation] = useState<{ rowIndex: number; letterIndex: number } | null>(null);
   const [showConfetti, setShowConfetti] = useState(false);
@@ -100,13 +101,15 @@ const WordleBoard = () => {
   useEffect(() => {
     const fetchWord = async () => {
       try {
-        setWordLoading(true)
-        const response = await axios.get("http://localhost:3000/api");
-        const word = response.data.message.toUpperCase()
-        setWord(word)
-        setWordLoading(false)
-      } catch (error) {
-        console.error('Fetch error:', error);
+        setWordLoading(true);
+        setFetchError(null);
+        const response = await axios.get("https://https://wordle-zeta-virid.vercel.app//api");
+        const word = response.data.message.toUpperCase();
+        setWord(word);
+      } catch (error:any) {
+        setFetchError(error);
+      } finally {
+        setWordLoading(false);
       }
     };
 
