@@ -108,7 +108,7 @@ const WordleBoard = () => {
         setWord(word);
       } catch (error:any) {
         setFetchError(error);
-        console.log(error)
+        console.log(error?.response?.data?.message?.response || "Error")
       } finally {
         setWordLoading(false);
       }
@@ -123,6 +123,25 @@ const WordleBoard = () => {
         <div className="loader"></div>
         <p className="mt-4 text-lg text-gray-700">Fetching Wordle word, please wait...</p>
       </div>
+    )
+  }
+
+  if (fetchError) {
+    return (
+      <div className="flex h-screen w-screen flex-col items-center justify-center bg-gray-100 px-3 md:px-0">
+        <h1 className="text-4xl font-bold text-red-600 mb-4">Oops! Something went wrong.</h1>
+        <p className="text-lg text-gray-700 mb-8">
+          We're sorry for the inconvenience. Please try again.
+        </p>
+        <div className="flex space-x-4">
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-gray-500 text-white font-semibold rounded hover:bg-gray-600"
+          >
+            Reload
+          </button>
+        </div>
+      </div >
     )
   }
 
